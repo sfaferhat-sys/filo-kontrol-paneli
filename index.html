@@ -543,7 +543,7 @@ footer .foot-note { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
     </div>
   </div>
   <div class="foot-row">
-    <span class="muted" style="font-size:12.5px">Tutarlar örnektir; tüm araçlar dizel kabul edilir ve aylık örnek motorin fiyatıyla hesaplanır.</span>
+    <span class="muted" style="font-size:12.5px">Tutarlar örnektir ve KDV hariçtir. Tüm araçlar dizel kabul edilir; motorin fiyatı örnek seridir, Kasım 2026 Bursa pompa fiyatına (96,14 TL/L, KDV dahil) göre ölçeklenmiştir.</span>
     <button type="button" class="linkbtn" data-tgl aria-controls="typeCostWrap" aria-expanded="false" data-on="Araç türüne göre maliyeti gizle" data-off="Araç türüne göre maliyet">Araç türüne göre maliyet</button>
   </div>
   <div class="card tbl-card" id="typeCostWrap" hidden>
@@ -703,21 +703,26 @@ var Calc = (function () {
     for (var i = 0; i < MONTHS.length; i++) { if (iso >= MONTHS[i].start && iso <= MONTHS[i].end) { return i; } }
     return -1;
   }
-  /* Örnek motorin fiyatı (TL/L) */
-  var FUEL_PRICE = [55.2, 55.8, 56.4, 56.9, 57.3, 57.8, 58.4, 58.9, 59.3, 59.8, 60.3, 60.8];
+  /* Örnek motorin pompa fiyatı (TL/L, KDV dahil): örnek seri; Kasım 2026 Bursa pompa fiyatına (96,14 TL/L,
+     4 dağıtıcı ortalaması) göre ölçeklenmiştir. Maliyet ve faturalarda KDV hariç fiyat (pompa / 1,20) kullanılır. */
+  var VAT = 0.20;
+  /* Örnek 2026 periyodik kontrol ve izolasyon testi bedelleri (TL, KDV hariç) */
+  var PER_FEE = 6000, IZO_FEE = 8500;
+  var FUEL_PUMP = [55.2, 55.8, 56.4, 56.9, 57.3, 57.8, 58.4, 58.9, 59.3, 59.8, 60.3, 60.8].map(function (p) { return Math.round(p * 96.14 / 60.8 * 100) / 100; });
+  var FUEL_PRICE = FUEL_PUMP.map(function (p) { return Math.round(p / (1 + VAT) * 100) / 100; });
   /* Mevsim etkisi: kış arızaları ve yaz yükü kullanımı artırır */
   var SEASON = [1.02, 1.05, 1.06, 1.04, 0.98, 0.96, 0.97, 1.0, 1.02, 0.99, 0.98, 1.0];
 
   /* ---- Araç türleri (değerler örnektir) ----
      road: km ile izlenir; road=false olanlar (jeneratör, iş makinesi) saatle izlenir. */
   var TYPES = [
-    { id: 'binek', name: 'Binek (havuz)', short: 'Binek', road: true, kmDay: 95, l100: 6.8, idleLph: 0.8, price: 1650000, rent: 42000, pm: 15000, pmCost: 9000, lifeYr: 7, life: 220000, tire: 4200, trafik: 9000, kasko: 38000, muayeneM: 24, muayeneFee: 3288, mtv: 6800, rentP: 0.6, age: [2, 8], u: [0.5, 0.88] },
-    { id: 'hafif', name: 'Hafif ticari (pikap/panelvan)', short: 'Hafif ticari', road: true, kmDay: 125, l100: 8.4, idleLph: 1.0, price: 1950000, rent: 48000, pm: 15000, pmCost: 11000, lifeYr: 8, life: 300000, tire: 4600, trafik: 14000, kasko: 45000, muayeneM: 12, muayeneFee: 3288, mtv: 5200, rentP: 0.55, age: [2, 8], u: [0.64, 0.95] },
-    { id: 'arazi', name: 'Arazi aracı 4x4', short: '4x4', road: true, kmDay: 115, l100: 10.2, idleLph: 1.3, price: 2750000, rent: 68000, pm: 10000, pmCost: 14000, lifeYr: 8, life: 300000, tire: 6400, trafik: 12000, kasko: 62000, muayeneM: 12, muayeneFee: 3288, mtv: 9800, rentP: 0.4, age: [2, 8], u: [0.6, 0.92] },
-    { id: 'sepetli', name: 'Sepetli (hidrolik platformlu) araç', short: 'Sepetli', road: true, kmDay: 75, l100: 17.5, idleLph: 2.6, price: 6800000, rent: 165000, pm: 10000, pmCost: 26000, lifeYr: 10, life: 300000, tire: 9800, trafik: 22000, kasko: 140000, muayeneM: 12, muayeneFee: 4446, mtv: 8900, rentP: 0.25, mmo: true, izo: true, pto: true, age: [1, 12], u: [0.62, 0.92] },
-    { id: 'vinc', name: 'Vinçli kamyon', short: 'Vinç', road: true, kmDay: 55, l100: 26, idleLph: 3.2, price: 9500000, rent: 0, pm: 10000, pmCost: 38000, lifeYr: 12, life: 400000, tire: 14000, trafik: 26000, kasko: 190000, muayeneM: 12, muayeneFee: 4446, mtv: 11500, rentP: 0, mmo: true, pto: true, age: [3, 14], u: [0.55, 0.82] },
-    { id: 'jen', name: 'Mobil jeneratör (römork)', short: 'Jeneratör', road: false, hDay: 5, lph: 9, idleLph: 0, price: 2400000, rent: 0, pm: 250, pmCost: 12000, lifeYr: 12, life: 12000, tire: 0, trafik: 3000, kasko: 30000, muayeneM: 12, muayeneFee: 3288, mtv: 0, rentP: 0, mmo: true, standby: true, age: [2, 12], u: [0.22, 0.5] },
-    { id: 'ism', name: 'İş makinesi (kazıcı-yükleyici)', short: 'İş makinesi', road: false, hDay: 6, lph: 11, idleLph: 0, price: 5200000, rent: 0, pm: 250, pmCost: 18000, lifeYr: 10, life: 10000, tire: 0, trafik: 6000, kasko: 75000, muayeneM: 0, muayeneFee: 0, mtv: 0, rentP: 0, mmo: true, age: [2, 10], u: [0.55, 0.85] }
+    { id: 'binek', name: 'Binek (havuz)', short: 'Binek', road: true, kmDay: 95, l100: 6.8, idleLph: 0.8, price: 1900000, rent: 48000, pm: 15000, pmCost: 12000, lifeYr: 7, life: 220000, tire: 5000, trafik: 12000, kasko: 52000, muayeneM: 24, muayeneFee: 3288, mtv: 6800, rentP: 0.6, age: [2, 8], u: [0.5, 0.88] },
+    { id: 'hafif', name: 'Hafif ticari (pikap/panelvan)', short: 'Hafif ticari', road: true, kmDay: 125, l100: 8.4, idleLph: 1.0, price: 2200000, rent: 55000, pm: 15000, pmCost: 14000, lifeYr: 8, life: 300000, tire: 5500, trafik: 18000, kasko: 60000, muayeneM: 12, muayeneFee: 4446, mtv: 5200, rentP: 0.55, age: [2, 8], u: [0.64, 0.95] },
+    { id: 'arazi', name: 'Arazi aracı 4x4', short: '4x4', road: true, kmDay: 115, l100: 10.2, idleLph: 1.3, price: 3000000, rent: 78000, pm: 10000, pmCost: 18000, lifeYr: 8, life: 300000, tire: 7500, trafik: 18000, kasko: 80000, muayeneM: 12, muayeneFee: 4446, mtv: 9800, rentP: 0.4, age: [2, 8], u: [0.6, 0.92] },
+    { id: 'sepetli', name: 'Sepetli (hidrolik platformlu) araç', short: 'Sepetli', road: true, kmDay: 75, l100: 17.5, idleLph: 2.6, price: 8000000, rent: 195000, pm: 10000, pmCost: 32000, lifeYr: 10, life: 300000, tire: 12000, trafik: 30000, kasko: 200000, muayeneM: 12, muayeneFee: 4446, mtv: 8900, rentP: 0.25, mmo: true, izo: true, pto: true, age: [1, 12], u: [0.62, 0.92] },
+    { id: 'vinc', name: 'Vinçli kamyon', short: 'Vinç', road: true, kmDay: 55, l100: 26, idleLph: 3.2, price: 11000000, rent: 0, pm: 10000, pmCost: 45000, lifeYr: 12, life: 400000, tire: 16000, trafik: 34000, kasko: 260000, muayeneM: 12, muayeneFee: 4446, mtv: 11500, rentP: 0, mmo: true, pto: true, age: [3, 14], u: [0.55, 0.82] },
+    { id: 'jen', name: 'Mobil jeneratör (römork)', short: 'Jeneratör', road: false, hDay: 5, lph: 9, idleLph: 0, price: 2800000, rent: 0, pm: 250, pmCost: 15000, lifeYr: 12, life: 12000, tire: 0, trafik: 4000, kasko: 42000, muayeneM: 12, muayeneFee: 3288, mtv: 0, rentP: 0, mmo: true, standby: true, age: [2, 12], u: [0.22, 0.5] },
+    { id: 'ism', name: 'İş makinesi (kazıcı-yükleyici)', short: 'İş makinesi', road: false, hDay: 6, lph: 11, idleLph: 0, price: 6000000, rent: 0, pm: 250, pmCost: 22000, lifeYr: 10, life: 10000, tire: 0, trafik: 8000, kasko: 95000, muayeneM: 0, muayeneFee: 0, mtv: 0, rentP: 0, mmo: true, age: [2, 10], u: [0.55, 0.85] }
   ];
   var TYPE = {}; TYPES.forEach(function (t) { TYPE[t.id] = t; });
 
@@ -914,7 +919,7 @@ var Calc = (function () {
           cost.muayene += occInMonth(v, 'muayene', m).length * t.muayeneFee;
           cost.diger += occInMonth(v, 'mtv', m).length * t.mtv;
         }
-        cost.muayene += occInMonth(v, 'mmo', m).length * 4500 + occInMonth(v, 'izo', m).length * 6500;
+        cost.muayene += occInMonth(v, 'mmo', m).length * PER_FEE + occInMonth(v, 'izo', m).length * IZO_FEE;
         cost.diger += km * 0.35 + 250;
         Object.keys(cost).forEach(function (c) { cost[c] = Math.round(cost[c]); });
         row[v.id] = {
@@ -960,7 +965,7 @@ var Calc = (function () {
     { id: 'util', name: 'Araç kullanım oranı', unit: '%', dir: 'up', target: 70, dec: 1, band: { type: 'pt', warn: 5 },
       formula: 'Kullanım oranı % = kullanılan araç-gün / kullanılabilir araç-gün × 100 (yedek jeneratörler hariç)',
       action: 'Az kullanılan araçları havuza alın veya filodan çıkarın; tahsisleri ATS verisine göre yeniden dağıtın.' },
-    { id: 'costKm', name: 'Km başına maliyet', unit: 'TL/km', dir: 'down', target: 27, dec: 2, band: { type: 'rel', warn: 0.05 },
+    { id: 'costKm', name: 'Km başına maliyet', unit: 'TL/km', dir: 'down', target: 32, dec: 2, band: { type: 'rel', warn: 0.05 },
       formula: 'TL/km = km ile izlenen araçların toplam işletme maliyeti / toplam km (jeneratör ve iş makinesi saatle izlendiği için hariç)',
       action: 'Maliyeti yüksek araçlarda kira, yakıt ve onarım kalemlerini ayrıştırın; yenileme veya kiralama kararını TCO ile verin.' },
     { id: 'fuel', name: 'Yakıt tüketimi', unit: 'L/100 km', dir: 'down', target: 10.5, dec: 1, band: { type: 'rel', warn: 0.03 },
@@ -1127,14 +1132,14 @@ var Calc = (function () {
       tire += r.cost.lastik;
       per += occInMonth(v, 'mmo', m).length; izo += occInMonth(v, 'izo', m).length;
     });
-    var litres = Math.round(s.fuelL), pump = FUEL_PRICE[m];
+    var litres = Math.round(s.fuelL), pump = FUEL_PRICE[m]; /* KDV hariç */
     out.push({ id: 'kira', sup: 'Kiralama firması', item: 'Araç kirası', unit: 'araç', qty: rented.length, price: rentSum / rented.length, cQty: rented.length, cPrice: rentSum / rented.length, avg: true });
     out.push({ id: 'yakit', sup: 'Yakıt kartı firması', item: 'Motorin', unit: 'L', qty: litres, price: pump, cQty: litres, cPrice: round2(pump * (1 - FUEL_DISCOUNT)), note: 'Sözleşmedeki %3 iskonto uygulanmamış.' });
     if (nlN > 0) { out.push({ id: 'servisN', sup: 'Anlaşmalı servis (Bursa)', item: 'Periyodik bakım', unit: 'iş', qty: nlN, price: round2(nlTl / nlN * (1 + SERVICE_MARKUP)), cQty: nlN, cPrice: nlTl / nlN, avg: true, note: 'Birim fiyat sözleşmenin üstünde.' }); }
     if (pmN > 0) { out.push({ id: 'servis', sup: 'Anlaşmalı servis (diğer iller)', item: 'Periyodik bakım', unit: 'iş', qty: pmN, price: pmTl / pmN, cQty: pmN, cPrice: pmTl / pmN, avg: true }); }
     if (tire > 0) { out.push({ id: 'lastik', sup: 'Lastik tedarikçisi', item: 'Lastik', unit: 'TL', qty: 1, price: tire, cQty: 1, cPrice: tire, lump: true }); }
-    if (per > 0) { out.push({ id: 'kontrol', sup: 'Periyodik kontrol firması', item: 'Periyodik kontrol', unit: 'adet', qty: per, price: 4500, cQty: per, cPrice: 4500 }); }
-    if (izo > 0) { out.push({ id: 'izo', sup: 'Periyodik kontrol firması', item: 'Sepet izolasyon testi', unit: 'adet', qty: izo, price: 6500, cQty: izo, cPrice: 6500 }); }
+    if (per > 0) { out.push({ id: 'kontrol', sup: 'Periyodik kontrol firması', item: 'Periyodik kontrol', unit: 'adet', qty: per, price: PER_FEE, cQty: per, cPrice: PER_FEE }); }
+    if (izo > 0) { out.push({ id: 'izo', sup: 'Periyodik kontrol firması', item: 'Sepet izolasyon testi', unit: 'adet', qty: izo, price: IZO_FEE, cQty: izo, cPrice: IZO_FEE }); }
     return out;
   }
   /* Havuz talepleri ve ikame (örnek): talep = karşılanan binek araç-günü + karşılanamayan talep */
@@ -1188,7 +1193,7 @@ var Calc = (function () {
   }
 
   return {
-    mulberry32: mulberry32, hashStr: hashStr, hashFrac: hashFrac, MONTHS: MONTHS, FUEL_PRICE: FUEL_PRICE, TYPES: TYPES, TYPE: TYPE, BASES: BASES, BASE: BASE, CATS: CATS,
+    mulberry32: mulberry32, hashStr: hashStr, hashFrac: hashFrac, MONTHS: MONTHS, FUEL_PRICE: FUEL_PRICE, FUEL_PUMP: FUEL_PUMP, VAT: VAT, TYPES: TYPES, TYPE: TYPE, BASES: BASES, BASE: BASE, CATS: CATS,
     OBLIGATIONS: OBLIGATIONS, KPIS: KPIS, REPL_W: REPL_W, REPL_LIMIT: REPL_LIMIT,
     dayNum: dayNum, isoOf: isoOf, addDays: addDays, addMonths: addMonths, daysBetween: daysBetween, dateStatus: dateStatus, monthOfIso: monthOfIso,
     generateFleet: generateFleet, applies: applies, pmDays: pmDays, occDue: occDue, occDelay: occDelay, openItem: openItem, occInMonth: occInMonth,
@@ -1249,7 +1254,7 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = Calc; }
 
   /* ---------- Durum ve kalıcılık ---------- */
   var STORE_KEY = 'filo-kontrol-paneli-v1';
-  var LEASE_DEFAULT = { price: 1950000, years: 4, km: 30000, rent: 48000, growth: 10, opex: 95000, resale: 45, rate: 20 };
+  var LEASE_DEFAULT = { price: 2200000, years: 4, km: 30000, rent: 55000, growth: 10, opex: 125000, resale: 45, rate: 20 };
   function defaultTargets() { var t = {}; C.KPIS.forEach(function (k) { t[k.id] = k.target; }); return t; }
   var State = { month: LAST, trendKpi: 'avail', targets: defaultTargets(), theme: null, lease: JSON.parse(JSON.stringify(LEASE_DEFAULT)),
     calType: 'all', calBase: 'all', calSt: 'attn', calMore: false, actMore: false, budgetCum: false, replAll: false };
@@ -1725,7 +1730,7 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = Calc; }
     LEASE_FIELDS.forEach(function (f) {
       $('ls-' + f.k).addEventListener('input', function (e) {
         var v = C.parseNum(e.target.value, f.kind);
-        if (isNaN(v)) { leaseErr[f.k] = 'Geçerli bir sayı girin (örnek: 1.950.000 veya 12,5).'; }
+        if (isNaN(v)) { leaseErr[f.k] = 'Geçerli bir sayı girin (örnek: 2.200.000 veya 12,5).'; }
         else { delete leaseErr[f.k]; State.lease[f.k] = v; }
         renderLease();
         if (!Object.keys(leaseErr).length) { saveState(); }
@@ -1913,7 +1918,7 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = Calc; }
     var idleL = list.filter(function (o) { return o.flags.indexOf('idle') >= 0; });
     var loss = sum(idleL.map(function (o) { return o.loss; }));
     var idleSt = C.kpiStatus(idle, ATS.idleTarget, 'down', { type: 'pt', warn: 3 });
-    var lossCalc = idleL.length ? idleL.map(function (o) { return o.v.plate + ': (' + nd(o.r.idleH, 1) + ' − ' + nd(o.r.engineH, 1) + ' × %10) saat × ' + nd(o.t.idleLph, 1) + ' L/saat × ' + nd(C.FUEL_PRICE[m], 2) + ' TL = ' + tl(o.loss); }).join('\n') : 'Eşiği aşan araç yok.';
+    var lossCalc = idleL.length ? idleL.map(function (o) { return o.v.plate + ': (' + nd(o.r.idleH, 1) + ' − ' + nd(o.r.engineH, 1) + ' × %10) saat × ' + nd(o.t.idleLph, 1) + ' L/saat × ' + nd(C.FUEL_PRICE[m], 2) + ' TL (KDV hariç) = ' + tl(o.loss); }).join('\n') : 'Eşiği aşan araç yok.';
     $('atsTiles').innerHTML = [
       sumCard({ id: 'at-km', title: 'Günlük ortalama km', val: esc(nd(s.km / s.roadUsed, 0)) + '<span class="u">km</span>', sub: 'kullanılan araç-gün başına',
         pop: popF('Formül', 'Günlük ortalama km = toplam km / kullanılan araç-gün (km ile izlenen araçlar)') + popF('Hesap', n0(s.km) + ' km / ' + n0(s.roadUsed) + ' araç-gün') }),
@@ -1922,7 +1927,7 @@ if (typeof module !== 'undefined' && module.exports) { module.exports = Calc; }
       sumCard({ id: 'at-low', title: 'Az kullanılan araç', val: esc(n0(low.length)) + '<span class="u">araç</span>', sub: 'son 6 ay kullanım %' + ATS.lowUse + ' altı', chip: chipHtml(low.length ? 'warn' : 'good', low.length ? 'Aksiyon' : 'Yok'),
         pop: popF('Formül', 'Kullanım = son 6 ayda kullanılan araç-gün / kullanılabilir araç-gün × 100; %' + ATS.lowUse + ' altı "az kullanılan" sayılır') + popM('Mobil jeneratör yedek ekipman olduğu için bu değerlendirmeye alınmaz.') }),
       sumCard({ id: 'at-loss', title: 'Rölanti yakıt kaybı', val: esc(n0(loss)) + '<span class="u">TL/ay</span>', sub: idleL.length + ' araç rölanti eşiğini aşıyor', chip: chipHtml(idleL.length ? 'crit' : 'good', idleL.length ? 'Kayıp' : 'Yok'),
-        pop: popF('Formül', 'Kayıp = (rölanti saati − kontak saati × %' + ATS.idleTarget + ') × rölanti tüketimi (L/saat) × yakıt fiyatı; rölantisi %' + ATS.idleHigh + ' üstündeki araçlar') + popF('Hesap', lossCalc) })
+        pop: popF('Formül', 'Kayıp = (rölanti saati − kontak saati × %' + ATS.idleTarget + ') × rölanti tüketimi (L/saat) × yakıt fiyatı (KDV hariç); rölantisi %' + ATS.idleHigh + ' üstündeki araçlar') + popF('Hesap', lossCalc) })
     ].join('');
     var offP = s.km > 0 ? s.offKm / s.km * 100 : null, viol = s.km > 0 ? (s.harsh + s.speed) / s.km * 1000 : null;
     var ps = C.poolStats(FLEET, REC, m), acc = CLAIMS.filter(function (c) { return c.kind === 'Hasar'; }).length, km12 = 0;
